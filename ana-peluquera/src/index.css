@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm Minimalism — AGL Beauty Salon */
+    --background: 50 17% 96%;        /* #F5F5F1 cream */
+    --foreground: 0 0% 20%;          /* #333333 charcoal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    --primary: 27 19% 70%;           /* #C2B2A3 sand beige */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 14% 90%;         /* warm light gray */
+    --secondary-foreground: 0 0% 20%;
+
+    --muted: 40 10% 94%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 27 19% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 12% 88%;
+    --input: 30 12% 88%;
+    --ring: 27 19% 70%;
+
+    --radius: 0.375rem;
+
+    /* Semantic tokens */
+    --sand: 27 19% 70%;
+    --sand-light: 30 18% 85%;
+    --sand-dark: 25 18% 55%;
+    --cream: 50 17% 96%;
+    --charcoal: 0 0% 20%;
+    --charcoal-light: 0 0% 40%;
+    --warm-white: 40 20% 98%;
+
+    --sidebar-background: 40 20% 98%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 27 19% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 14% 92%;
+    --sidebar-accent-foreground: 0 0% 20%;
+    --sidebar-border: 30 12% 88%;
+    --sidebar-ring: 27 19% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    overflow-wrap: break-word;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* Scroll reveal animation */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.animate-reveal-up {
+  animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

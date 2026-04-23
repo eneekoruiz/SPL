@@ -1,0 +1,41 @@
+# ─── Dependencias ───
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Next.js y Build ───
+.next/
+out/
+build/
+
+# ─── Archivos de Entorno (¡CRÍTICO! Protege tus variables) ───
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ─── Secretos de Firebase y Google Cloud ───
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+*service-account*.json
+*firebase-adminsdk*.json
+*fluid-axis*.json
+*.key
+
+# ─── Logs y Debug ───
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─── Sistema Operativo y Editores ───
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+!vercel.json
+!package.json
+!package-lock.json  
