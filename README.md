@@ -1,24 +1,201 @@
-# AG Beauty Salon - Booking & CMS Platform
+# SPL Booking & CMS Platform
 
-A high-end, bespoke Full-Stack web application designed for **AG Beauty Salon** (Donostia, Spain). This project transitions a traditional local business into a fully digitalized ecosystem, featuring a senior-friendly UX, a trilingual interface (ES/EN/EU), and a smart booking engine.
+Este repositorio contiene la aplicación SaaS de reservas y gestión para `SPL`, construida con **Vite + React + TypeScript**, con una arquitectura híbrida que también mantiene carpetas `app/` y `apps/backend/` para posibles extensiones.
 
-## Project Objective
-The goal of this application is twofold:
-1. **For the Client:** Provide an ultra-minimalist, zero-friction booking experience ("Don't make me think" UX) accessible to all age demographics.
-2. **For the Owner:** Serve as a "God-Mode" dynamic CMS and agenda manager. It eliminates the dependency on a developer, allowing the owner to live-edit text, swap images, and manage appointments directly from a smartphone.
+## Qué incluye este proyecto
 
-## Core Features
+- **Frontend principal:** `src/` con componentes React, hooks, contextos y páginas.
+- **Administración / CMS:** `/portal-reservado` con edición de contenido y gestión de servicios.
+- **Multi-tenant / theme:** `src/contexts/TenantContext.tsx` y `TenantSwitcher` para cambiar instancias o marcas.
+- **Backend BaaS:** Firebase Firestore/Auth/Storage, con variables de entorno en `.env.example`.
+- **Testing:** `test-saas-e2e.js` y configuración de Playwright/Vitest.
 
-* **Smart Booking Engine:** Complex services (like hair coloring) use a 3-phase algorithm (Active Work -> Wait/Processing -> Final Touch). The system automatically frees up the "Wait" phase on the public calendar so other clients can book short services in parallel.
-* **Bidirectional Google Calendar Sync:** Google Calendar acts as the single source of truth. The app reads real-time availability and writes new appointments instantly via the Google Calendar API.
-* **"God-Mode" Admin CMS:** A hidden, authenticated route (`/portal-reservado`) where the owner can perform full CRUD operations on services and products, toggle item visibility, and edit website copy on the fly.
-* **Trilingual i18n:** Full support for Spanish, English, and Basque.
-* **Automated Image Optimization:** Client-side image compression (<1MB) before Firebase Storage upload to ensure lightning-fast load times.
-* **Operations & Convenience:** Integrated "Click-to-Call", one-click Google Maps navigation, and manual WhatsApp reminders generated straight from the Admin dashboard.
+## Uso local
 
-## Tech Stack
+### 1. Instalar dependencias
 
-* **Frontend:** Next.js (React), Tailwind CSS, TypeScript
-* **Backend / BaaS:** Firebase (Auth, Firestore for DB, Storage for media)
-* **Integrations:** Google Calendar API v3
-* **Icons & UI:** Lucide React / Phosphor Icons
+```powershell
+cd "c:\Users\itxas\OneDrive\Escritorio\SPL"
+npm install
+```
+
+### 2. Configurar entorno
+
+Copia `.env.example` a `.env` y rellena las variables:
+
+```bash
+cp .env.example .env
+```
+
+Después completa:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Opcional:
+
+- `VITE_CLOUDINARY_API_KEY`
+- `VITE_CLOUDINARY_API_SECRET`
+
+### 3. Levantar el proyecto
+
+```powershell
+npm run dev
+```
+
+Abre el navegador en la URL que indique Vite, normalmente:
+
+- `http://localhost:5173`
+
+### 4. Ver la app en producción local
+
+```powershell
+npm run build
+npm run preview
+```
+
+## Cómo se gestiona este SPL
+
+### Panel administrativo
+
+Accede como administrador a:
+
+- `http://localhost:5173/portal-reservado`
+
+Desde allí se gestionan:
+
+- servicios y productos
+- visibilidad pública
+- contenido editable de la web
+- reservas y clientes en la sección CRM
+
+### Contenido editable
+
+El sistema usa varios hooks para cargar y actualizar contenido directamente desde Firestore:
+
+- `src/hooks/useServices.ts`
+- `src/hooks/useAboutContent.ts`
+- `src/hooks/useAdminSettings.ts`
+- `src/hooks/useRevista.ts`
+
+### Tenant / instancias
+
+La aplicación está preparada para multi-tenant con temas y parámetros de marca:
+
+- `src/contexts/TenantContext.tsx`
+- `src/components/TenantSwitcher.tsx`
+
+Para crear una nueva instancia de tenant, define un nuevo objeto en `TENANT_THEMES` dentro de `src/contexts/TenantContext.tsx`, con:
+
+- `id`
+- `name`
+- `brandColor`
+- `secondaryColor`
+- `fontFamily`
+- `description`
+- `logo`
+
+Ejemplo:
+
+```ts
+const TENANT_THEMES = {
+  ana: { ... },
+  lola: { ... },
+  nueva: {
+    id: "nueva",
+    name: "Nueva Marca",
+    brandColor: "#123456",
+    secondaryColor: "#abcdef",
+    fontFamily: "Inter, sans-serif",
+    description: "Nueva instancia SaaS",
+    logo: "🌀",
+  },
+};
+```
+
+Luego cambia la instancia en el `TenantSwitcher` o añadiendo `?tenant=nueva` a la URL.
+
+## Árbol del proyecto
+
+Estructura principal:
+
+```text
+SPL/
+├─ app/
+│  ├─ [tenant]/layout.tsx
+│  └─ [tenant]/not-found.tsx
+├─ apps/
+│  └─ backend/
+│     ├─ middleware.ts
+│     ├─ next.config.mjs
+│     └─ src/
+├─ core/
+│  └─ db/tenantFactory.ts
+├─ features/
+│  └─ shared/
+│     ├─ components/PoweredBySaaS.tsx
+│     └─ index.ts
+├─ public/
+├─ src/
+│  ├─ App.tsx
+│  ├─ components/
+│  │  ├─ Footer.tsx
+│  │  ├─ LazyImage.tsx
+│  │  ├─ AdminRoute.tsx
+│  │  └─ cms/
+│  ├─ contexts/
+│  │  ├─ AuthContext.tsx
+│  │  └─ TenantContext.tsx
+│  ├─ hooks/
+│  │  ├─ useAboutContent.ts
+│  │  ├─ useAdminSettings.ts
+│  │  ├─ usePrefetch.ts
+│  │  ├─ useRevista.ts
+│  │  └─ useServices.ts
+│  ├─ lib/
+│  │  ├─ firebase.ts
+│  │  ├─ firestore.ts
+│  │  └─ queryClient.ts
+│  ├─ pages/
+│  │  ├─ Home.tsx
+│  │  ├─ AdminDashboard.tsx
+│  │  └─ Reservation.tsx
+│  └─ index.css
+├─ .env.example
+├─ package.json
+└─ README.md
+```
+
+## Comandos disponibles
+
+```bash
+npm run dev         # iniciar servidor de desarrollo
+npm run build       # compilar para producción
+npm run preview     # vista previa de la build
+npm run lint        # ejecutar ESLint
+npm run test        # ejecutar pruebas Vitest
+npm run test:watch  # pruebas en modo vigilancia
+```
+
+## Cómo crear una nueva instancia de la aplicación
+
+1. Copia `.env.example` a `.env`.
+2. Rellena las variables de Firebase.
+3. Si necesitas Cloudinary, agrega `VITE_CLOUDINARY_API_KEY` y `VITE_CLOUDINARY_API_SECRET`.
+4. Añade un nuevo tenant en `src/contexts/TenantContext.tsx`.
+5. Inicia `npm run dev`.
+6. Abre el navegador en `http://localhost:5173/?tenant=<id>`.
+
+## Subir cambios a GitHub
+
+Para guardar y publicar este README en GitHub:
+
+```bash
+git add README.md .env.example
+git commit -m "Actualiza README con instrucciones de uso y estructura del proyecto"
+git push origin master
+```
