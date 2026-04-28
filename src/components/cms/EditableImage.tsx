@@ -17,6 +17,7 @@ import { Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { compressAndUpload, deleteStorageFile } from "@/lib/storageManager";
+import { LazyImage } from "@/components/LazyImage";
 
 /** Props del componente EditableImage. */
 interface EditableImageProps {
@@ -122,7 +123,12 @@ const EditableImage = ({
   if (!isEditing) {
     return (
       <div className={className} style={style}>
-        <img src={src} alt={alt} className={imgClassName} />
+        <LazyImage
+          src={src}
+          alt={alt}
+          className={imgClassName}
+          priority={storagePath.includes('hero') || storagePath.includes('main')} // Prioridad para imágenes principales
+        />
       </div>
     );
   }

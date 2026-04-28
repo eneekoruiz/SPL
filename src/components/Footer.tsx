@@ -3,6 +3,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import EditableText from "@/components/cms/EditableText";
 import { useServicesPageContent, useUpdateServicesPageContent } from "@/hooks/useServices";
+import { PoweredBySaaS } from "../../features/shared/components";
 
 const Footer = () => {
   const { t, lang } = useLanguage();
@@ -87,6 +88,9 @@ const Footer = () => {
             {t("footer.privacy")}
           </Link>
         </div>
+
+        {/* SaaS Badge - Aparece en todos los tenants */}
+        <PoweredBySaaS />
       </div>
     </footer>
   );

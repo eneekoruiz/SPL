@@ -4,6 +4,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { MapPin, ArrowRight, Phone as PhoneIcon } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/contexts/TenantContext";
 import EditableText from "@/components/cms/EditableText";
 import EditableImage from "@/components/cms/EditableImage";
 
@@ -14,6 +15,7 @@ import heroImageFallback from "@/assets/hero-salon.jpg";
 const Home = () => {
   const { t, lang } = useLanguage();
   const { isEditingView } = useAuth();
+  const { tenant } = useTenant();
   
   const { data: pageContent } = useServicesPageContent();
   const updatePageContent = useUpdateServicesPageContent();
@@ -46,6 +48,29 @@ const Home = () => {
           </div>
         </div>
       )}
+
+      {/* SaaS Multi-Tenant Demo */}
+      <div className="container mt-6 mb-0">
+        <div
+          className="rounded-lg px-4 py-3 text-sm border-2"
+          style={{
+            backgroundColor: tenant.secondaryColor,
+            borderColor: tenant.brandColor,
+            color: tenant.brandColor
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{tenant.logo}</span>
+            <div>
+              <strong>SaaS Multi-Tenant Activo:</strong> {tenant.name}
+              <br />
+              <span className="text-xs opacity-75">
+                Tema: {tenant.brandColor} | Fuente: {tenant.fontFamily}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* 1. Brand + CTA — First thing you see, no distractions */}
       <section className="min-h-[calc(100vh-4rem)] flex items-center justify-center">

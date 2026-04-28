@@ -47,6 +47,8 @@ export const useRevista = (includeHidden = false) => {
 
       return data;
     },
+    staleTime: 1000 * 60 * 20, // 20 minutos para revista (contenido estático)
+    gcTime: 1000 * 60 * 60 * 2, // 2 horas de cache
   });
 };
 

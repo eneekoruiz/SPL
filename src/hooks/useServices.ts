@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, getDoc, doc, setDoc, updateDoc, query } from "firebase/firestore";
 
-const QUERY_TIMEOUT_MS = 10000;
+const QUERY_TIMEOUT_MS = 3000; // Reducido de 10s a 3s - mucho más agresivo
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
@@ -62,6 +62,8 @@ export const useServices = (includeHidden = false) => {
       return data;
     },
     retry: 1,
+    staleTime: 1000 * 60 * 15, // 15 minutos para servicios (cambian poco)
+    gcTime: 1000 * 60 * 60, // 1 hora de cache
   });
 };
 

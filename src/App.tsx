@@ -19,12 +19,14 @@
   import { TooltipProvider } from "@/components/ui/tooltip";
   import { LanguageProvider } from "@/i18n/LanguageContext";
   import { AuthProvider } from "@/contexts/AuthContext";
+  import { TenantProvider } from "@/contexts/TenantContext";
   import Navbar from "@/components/Navbar";
   import Footer from "@/components/Footer";
   import AdminRoute from "@/components/AdminRoute";
   import AdminToolbar from "@/components/cms/AdminToolbar";
+  import { TenantSwitcher } from "@/components/TenantSwitcher";
   import CancelBooking from "./pages/CancelBooking"; // Importar arriba
-  import { Analytics } from "@vercel/analytics/react";
+  import { usePrefetchCriticalData } from "@/hooks/usePrefetch";
 
   // Páginas públicas (ahora con CMS integrado)
   import Home from "./pages/Home";
@@ -37,7 +39,7 @@
   // Páginas de administración
   import AdminLogin from "./pages/AdminLogin";
   import AdminDashboard from "./pages/AdminDashboard";
-  import ClientCRMPage from "@/pages/ClientCRMPage";
+  import ClientCRMPage from "./pages/ClientCRMPage";
   import NotFound from "./pages/NotFound";
 
   /**
@@ -48,7 +50,10 @@
     defaultOptions: {
       queries: {
         retry: 1,
-        staleTime: 1000 * 60 * 2, // 2 minutos
+        staleTime: 1000 * 60 * 10, // 10 minutos - mucho más agresivo
+        gcTime: 1000 * 60 * 30, // 30 minutos de cache
+        refetchOnWindowFocus: false, // No refetch al cambiar de pestaña
+        refetchOnReconnect: false, // No refetch al reconectar
       },
     },
   });
@@ -56,26 +61,27 @@
   /**
    * Componente raíz de la aplicación.
    */
-  const App = () => (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <LanguageProvider>
-            <Sonner richColors closeButton />
-            <BrowserRouter>
-              {/* Barra de admin flotante — visible solo para Ana */}
-              <AdminToolbar />
+  const App = () => {
+    // Prefetching agresivo de datos críticos al inicio
+    usePrefetchCriticalData();
 
-              <Navbar />
+    return (
+                {/* Switcher de tenants para desarrollo */}
+                <TenantSwitcher />
 
-              <Routes>
-                {/* ── Páginas públicas (con CMS integrado cuando isEditingView) ── */}
-                <Route path="/" element={<Home />} />
-                <Route path="/servicios" element={<Services />} />
-                <Route path="/quienes-somos" element={<QuienesSomos />} />
-                <Route path="/revista" element={<Revista />} />
-                <Route path="/reservar" element={<Reservation />} />
-                <Route path="/privacidad" element={<Privacidad />} />
+                {/* Barra de admin flotante — visible solo para Ana */}
+                <AdminToolbar />
+
+                <Navbar />
+
+                <Routes>
+                  {/* ── Páginas públicas (con CMS integrado cuando isEditingView) ── */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/servicios" element={<Services />} />
+                  <Route path="/quienes-somos" element={<QuienesSomos />} />
+                  <Route path="/revista" element={<Revista />} />
+                  <Route path="/reservar" element={<Reservation />} />
+                  <Route path="/privacidad" element={<Privacidad />} />
 
                 {/* ── Autenticación ── */}
                 <Route path="/portal-reservado" element={<AdminLogin />} />
@@ -119,11 +125,11 @@
 
               <Footer />
             </BrowserRouter>
-            <Analytics />
           </LanguageProvider>
         </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+      </TenantProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
   );
 
   export default App;
