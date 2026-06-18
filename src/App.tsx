@@ -66,6 +66,12 @@
     usePrefetchCriticalData();
 
     return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <TenantProvider>
+            <AuthProvider>
+              <LanguageProvider>
+                <BrowserRouter>
                 {/* Switcher de tenants para desarrollo */}
                 <TenantSwitcher />
 
@@ -131,5 +137,6 @@
     </TooltipProvider>
   </QueryClientProvider>
   );
+};
 
   export default App;
