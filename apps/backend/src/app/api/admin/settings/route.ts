@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseAdminApp } from '@/lib/firebaseAdmin';
+import { requireAdminRequest } from '@/lib/auth';
+import { getCorsHeaders } from '@/lib/cors';
 
 // ✅ Configuramos CORS para que tu web (puerto 8080) pueda leer estos datos
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request, 'GET, OPTIONS') });
 }
 
 /**
  * GET: Devuelve la configuración global del admin (como el email oficial)
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const headers = getCorsHeaders(request, 'GET, OPTIONS');
+  const auth = await requireAdminRequest(request);
+  if (!auth.authorized) return auth.response;
+
   try {
     const db = getFirebaseAdminApp().firestore();
     
@@ -25,7 +25,7 @@ export async function GET() {
     if (!adminDoc.exists) {
       return NextResponse.json(
         { error: 'Configuración no encontrada en Firestore' }, 
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers }
       );
     }
 
@@ -37,14 +37,14 @@ export async function GET() {
       // Aquí puedes añadir más cosas en el futuro (ej: teléfono del salón)
     }, { 
       status: 200, 
-      headers: corsHeaders 
+      headers
     });
 
   } catch (error) {
     console.error("❌ Error al obtener settings:", error);
     return NextResponse.json(
       { error: 'Error interno del servidor' }, 
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers }
     );
   }
 }

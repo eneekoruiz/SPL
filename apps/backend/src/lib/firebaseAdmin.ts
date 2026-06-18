@@ -103,5 +103,5 @@ export async function isAllowedAdminEmail(email: string | null | undefined) {
 }
 
 // Añade esto al final de firebaseAdmin.ts
-export const db = getFirebaseAdminApp().firestore();
-export const authAdmin = getFirebaseAdminApp().auth();
+export const getDb = () => getFirebaseAdminApp().firestore();
+export const getAuthAdmin = () => getFirebaseAdminApp().auth();

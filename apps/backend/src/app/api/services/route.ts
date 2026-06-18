@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin"; // O la ruta que arreglamos antes
+import { getDb } from "@/lib/firebaseAdmin";
+import { getCorsHeaders } from "@/lib/cors";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const headers = getCorsHeaders(request, "GET, OPTIONS");
   try {
     // 🔍 Esto busca la carpeta "services" en tu Firestore
-    const snapshot = await db.collection("services").get();
+    const snapshot = await getDb().collection("services").get();
     
     // Convertimos los datos de Firebase en una lista limpia
     const services = snapshot.docs.map(doc => ({
@@ -12,16 +14,14 @@ export async function GET() {
       ...doc.data()
     }));
 
-    return NextResponse.json(services);
+    return NextResponse.json(services, { headers });
   } catch (error) {
     console.error("❌ Error al leer Firestore:", error);
-    return NextResponse.json({ error: "Error al cargar servicios" }, { status: 500 });
+    return NextResponse.json({ error: "Error al cargar servicios" }, { status: 500, headers });
   }
 }
 
 // IMPORTANTE: Añade esto para que el navegador no bloquee la petición inicial
-export async function OPTIONS() {
-  return NextResponse.json({}, { 
-    headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS" } 
-  });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request, "GET, OPTIONS") });
 }

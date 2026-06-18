@@ -2,12 +2,6 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage"; 
-// 👈 Añade esta importación
-
-
-// 🕵️‍♂️ CHIVATO TEMPORAL: Vamos a ver qué está leyendo Vite
-console.log("🔥 Mi API KEY es:", import.meta.env.VITE_FIREBASE_API_KEY);
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "dev-api-key-placeholder",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dev-project.firebaseapp.com",

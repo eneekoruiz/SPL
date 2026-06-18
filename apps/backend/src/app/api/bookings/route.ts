@@ -2,27 +2,23 @@ import { NextResponse } from 'next/server';
 import { getFirebaseAdminApp } from '@/lib/firebaseAdmin';
 import { createBooking } from '@/lib/bookingService'; 
 import { getBusySlots, cancelAppointment } from '@/lib/googleCalendar';
-import { Resend } from 'resend';
+import { getResend } from '@/lib/resend';
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { z } from 'zod';
+import { requireAdminRequest } from '@/lib/auth';
+import { getCorsHeaders } from '@/lib/cors';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const TZ = "Europe/Madrid";
 const SALON_PHONE = "34843673595";
 const PERSONAL_PHONE = "34645006964";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.NEXT_PUBLIC_SITE_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
@@ -58,20 +54,6 @@ function getClientIp(request: Request): string {
   return request.headers.get('x-real-ip') || 'unknown';
 }
 
-function getCorsHeaders(request: Request): Record<string, string> {
-  const origin = request.headers.get('origin') || '';
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin)
-    ? origin
-    : (ALLOWED_ORIGINS[0] || '*');
-
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    Vary: 'Origin',
-  };
-}
-
 function isRateLimited(request: Request, scope: string): boolean {
   const key = `${scope}:${getClientIp(request)}`;
   const now = Date.now();
@@ -96,7 +78,7 @@ async function sendCancellationEmail(email: string, name: string, date: string, 
   const text = t[lang as keyof typeof t] || t.es;
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: 'AG Beauty Salon <onboarding@resend.dev>',
       to: email,
       subject: `${text.title} - AG Beauty Salon`,
@@ -191,7 +173,17 @@ export async function GET(request: Request) {
         }
         await db.collection('bookings').doc(booking.id).delete();
       } else {
-        cleanWebBookings.push(booking);
+        cleanWebBookings.push({
+          id: booking.id,
+          startTime: `${booking.date}T${booking.start_time || booking.startTime}:00`,
+          endTime: `${booking.date}T${booking.end_time || booking.endTime}:00`,
+          employee_id: booking.employee_id || null,
+          status: booking.status,
+          phase1_min: booking.phase1_min || 0,
+          phase2_min: booking.phase2_min || 0,
+          phase3_min: booking.phase3_min || 0,
+          isAppointment: true,
+        });
       }
     }
 
@@ -244,6 +236,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' }, { status: 429, headers });
   }
 
+  const auth = await requireAdminRequest(request);
+  if (!auth.authorized) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Falta ID' }, { status: 400, headers });
@@ -259,7 +254,11 @@ export async function DELETE(request: Request) {
     }
 
     if (data?.googleEventId) {
-      try { await cancelAppointment(data.googleEventId); } catch (e) {}
+      try {
+        await cancelAppointment(data.googleEventId);
+      } catch (error) {
+        console.warn('No se pudo cancelar el evento de calendario asociado.', error);
+      }
     }
     await docRef.delete();
     return NextResponse.json({ success: true }, { status: 200, headers });

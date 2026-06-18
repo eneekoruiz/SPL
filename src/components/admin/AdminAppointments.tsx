@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import ScrollReveal from "@/components/ScrollReveal";
 import { toast } from "sonner";
@@ -17,9 +17,23 @@ const getLocalDateStr = (d: Date) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
 
+interface Appointment {
+  id: string;
+  type?: string;
+  status?: string;
+  start_time?: string;
+  end_time?: string;
+  client_name?: string;
+  client_phone?: string;
+  service_id?: string | null;
+  current_phase?: string;
+  phase2_released?: boolean;
+  employee_id?: string;
+}
+
 const AdminAppointments = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const { data: services = [] } = useServices(true);
 
@@ -27,14 +41,14 @@ const AdminAppointments = () => {
     weekday: "long", day: "numeric", month: "long",
   });
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
       const dateStr = getLocalDateStr(selectedDate);
       const q = query(collection(db, "bookings"), where("date", "==", dateStr));
       const snap = await getDocs(q);
       
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Appointment[];
       
       // Ordenamos todo por hora de inicio (citas y bloqueos)
       data.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
@@ -46,11 +60,11 @@ const AdminAppointments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchBookings();
-  }, [selectedDate]);
+  }, [fetchBookings]);
 
   const changeDate = (days: number) => {
     const newDate = new Date(selectedDate);

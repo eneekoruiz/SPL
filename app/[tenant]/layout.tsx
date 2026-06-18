@@ -164,8 +164,6 @@ export default async function TenantLayout({
 /**
  * Context Provider Cliente para acceso a tenant en componentes
  */
-'use client';
-
 import { createContext, useContext } from 'react';
 
 interface TenantContextType {

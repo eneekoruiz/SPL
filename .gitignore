@@ -7,6 +7,7 @@ node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
 
 # ─── Archivos de Entorno (¡CRÍTICO! Protege tus variables) ───
 .env
@@ -38,4 +39,4 @@ Thumbs.db
 
 !vercel.json
 !package.json
-!package-lock.json  
+!package-lock.json

@@ -44,7 +44,7 @@ interface EditableTextProps {
    * El elemento HTML que envuelve el texto en modo solo lectura.
    * @default "span"
    */
-  as?: keyof JSX.IntrinsicElements;
+  as?: "span" | "p" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
   /** Placeholder visible cuando el texto está vacío en modo edición. */
   placeholder?: string;
   /** Nombre del idioma actual para el feedback al usuario. */

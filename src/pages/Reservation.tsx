@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -110,7 +110,7 @@ const Reservation = () => {
   
   const isEmergencyClosedToday = settings?.today_closed && settings?.today_closed_date === todayStr;
 
-  const isDateDisabled = (date?: Date) => {
+  const isDateDisabled = useCallback((date?: Date) => {
     if (!date) return true; 
   
     const today = new Date();
@@ -129,13 +129,13 @@ const Reservation = () => {
     }
     
     return false;
-  };
+  }, [isEmergencyClosedToday, settings?.vacation_ranges, todayStr]);
 
   useEffect(() => {
     if (selectedDate && settings && isDateDisabled(selectedDate)) {
       setSelectedDate(undefined);
     }
-  }, [settings]);
+  }, [isDateDisabled, selectedDate, settings]);
 
   useEffect(() => {
     if (!dateStr) {
@@ -238,7 +238,7 @@ const Reservation = () => {
     );
 
     return { occupiedSlots: occupied, slotAssignments: assignments };
-  }, [dayBookings, service, selectedDate, settings, isFetchingSlots]); 
+  }, [currentStaff, dayBookings, isDateDisabled, isFetchingSlots, selectedDate, service, todayStr]);
 
   const isDayFull = useMemo(() => {
     if (isFetchingSlots || ALL_SLOTS.length === 0) return false;

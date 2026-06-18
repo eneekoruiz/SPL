@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { db } from "./firebaseAdmin"; 
+import { getDb } from "./firebaseAdmin";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -38,7 +38,7 @@ async function getOAuth2Client() {
   );
 
   // Leemos la llave maestra de Ana desde Firebase
-  const doc = await db.collection("admin").doc("settings").get();
+  const doc = await getDb().collection("admin").doc("settings").get();
   const data = doc.data();
   const refreshToken = data?.google_refresh_token;
 
@@ -123,7 +123,7 @@ export async function getBusySlots(dateRange: CalendarDateRange): Promise<{ busy
   // 🚀 AWAIT CRÍTICO para el nuevo sistema
   const calendar = await getCalendar();
   
-  const settingsDoc = await db.collection("admin").doc("settings").get();
+  const settingsDoc = await getDb().collection("admin").doc("settings").get();
   const settingsData = settingsDoc.data() || {};
   
   const settings: AdminSettings = {
