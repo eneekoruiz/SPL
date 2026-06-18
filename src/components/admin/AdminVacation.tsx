@@ -10,8 +10,8 @@ interface Props {
 }
 
 const AdminVacation = ({ settings, onClose }: Props) => {
-  const [start, setStart] = useState(settings?.vacation_start || "");
-  const [end, setEnd] = useState(settings?.vacation_end || "");
+  const [start, setStart] = useState(settings?.vacation_ranges?.[0]?.start || "");
+  const [end, setEnd] = useState(settings?.vacation_ranges?.[0]?.end || "");
   const updateSettings = useUpdateAdminSettings();
 
   const handleSave = () => {
@@ -20,14 +20,14 @@ const AdminVacation = ({ settings, onClose }: Props) => {
       return;
     }
     updateSettings.mutate(
-      { vacation_start: start, vacation_end: end },
+      { vacation_ranges: [{ start, end }] },
       { onSuccess: () => { toast.success("Vacaciones configuradas"); onClose(); } }
     );
   };
 
   const handleClear = () => {
     updateSettings.mutate(
-      { vacation_start: null, vacation_end: null },
+      { vacation_ranges: [] },
       { onSuccess: () => { toast.info("Vacaciones eliminadas"); onClose(); } }
     );
   };
@@ -65,7 +65,7 @@ const AdminVacation = ({ settings, onClose }: Props) => {
       </div>
       <div className="flex gap-2">
         <Button variant="hero" size="sm" onClick={handleSave}>Guardar</Button>
-        {settings?.vacation_start && (
+        {Boolean(settings?.vacation_ranges?.length) && (
           <Button variant="outline" size="sm" onClick={handleClear}>Eliminar vacaciones</Button>
         )}
       </div>

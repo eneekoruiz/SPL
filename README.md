@@ -16,12 +16,21 @@ The repository contains a multi-tenant salon booking interface, editable public 
 ```bash
 npm install
 npm run dev
-npm run build
-npm run lint
-npm run test
+npm run check
 ```
 
-Environment variables are documented in `.env.example`.
+Frontend variables are documented in `.env.example`.
+
+The API lives in `apps/backend`:
+
+```bash
+cd apps/backend
+npm ci
+npm run build
+npm run dev
+```
+
+Backend variables are documented in `apps/backend/.env.example`. Firebase service-account data, Google credentials, Resend keys, and the Cloudinary API secret belong only in the backend environment. Production deployments must also set `ALLOWED_ORIGINS` explicitly.
 
 ## Documentation
 

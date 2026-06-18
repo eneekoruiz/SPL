@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query } from 'firebase/firestore';
+import type { DBService } from '@/hooks/useServices';
 
 export const usePrefetchCriticalData = () => {
   const queryClient = useQueryClient();
@@ -19,10 +20,10 @@ export const usePrefetchCriticalData = () => {
       try {
         const q = query(collection(db, 'services'));
         const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({
+        const data = (snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        })).filter(s => s.visible !== false)
+        })) as DBService[]).filter(s => s.visible !== false)
           .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
         // Cache con tiempo largo

@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { getResend } from './resend';
 import { getFirebaseAdminApp } from './firebaseAdmin'; 
 import { createAppointment, cancelAppointment, getBusySlots } from './googleCalendar'; 
 import dayjs from 'dayjs';
@@ -14,7 +14,6 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(customParseFormat); 
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:8080';
 
 export interface BookingPayload {
@@ -142,7 +141,7 @@ export async function createBooking(data: BookingPayload) {
     };
 
     if (data.client_email && data.client_email.trim()) {
-      await resend.emails.send({
+      await getResend().emails.send({
         from: 'AG Beauty Salon <onboarding@resend.dev>', 
         to: data.client_email,
         subject: subjects[userLang as keyof typeof subjects],
@@ -173,7 +172,11 @@ export async function cancelBookingByToken(token: string) {
     const data = doc.data();
 
     if (data.googleEventId) {
-      try { await cancelAppointment(data.googleEventId); } catch (err) { }
+      try {
+        await cancelAppointment(data.googleEventId);
+      } catch (error) {
+        console.warn('No se pudo cancelar el evento de calendario asociado.', error);
+      }
     }
     
     await doc.ref.update({ status: 'cancelled', canceledAt: new Date().toISOString() });

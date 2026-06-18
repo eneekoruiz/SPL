@@ -2,18 +2,14 @@ import { NextResponse } from "next/server";
 import { getFirebaseAdminApp } from "@/lib/firebaseAdmin";
 import { sendCancellationEmail } from "@/lib/notifications";
 import { cancelAppointment } from "@/lib/googleCalendar"; 
+import { getCorsHeaders } from "@/lib/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request, "DELETE, OPTIONS") });
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const headers = getCorsHeaders(request, "DELETE, OPTIONS");
   try {
     // Aunque la variable se llame 'id' por la ruta de Next.js, en realidad nos está llegando el cancelToken
     const token = params.id;
@@ -29,7 +25,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     if (snapshot.empty) {
       console.log("⚠️ Intento de cancelar una reserva con token inválido o ya cancelada:", token);
-      return NextResponse.json({ error: "Reserva no encontrada o ya cancelada" }, { status: 404, headers: corsHeaders });
+      return NextResponse.json({ error: "Reserva no encontrada o ya cancelada" }, { status: 404, headers });
     }
 
     const bookingDoc = snapshot.docs[0];
@@ -68,10 +64,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       }
     }
 
-    return NextResponse.json({ success: true }, { status: 200, headers: corsHeaders });
+    return NextResponse.json({ success: true }, { status: 200, headers });
 
   } catch (error) {
     console.error("❌ Error grave al cancelar la cita:", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500, headers });
   }
 }

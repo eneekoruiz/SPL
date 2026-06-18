@@ -11,11 +11,10 @@
  * @module notifications
  */
 
-import { Resend } from "resend";
+import { getResend } from "./resend";
 
 /** Cliente de Resend. Se inicializa sin clave si la variable no está definida,
  * lo que permite que el módulo cargue sin errores aunque no se use el email. */
-const resend = new Resend(process.env.RESEND_API_KEY || "");
 
 /** URL base del sitio público (para enlaces de cancelación en emails). */
 const SITE_URL =
@@ -89,7 +88,7 @@ export async function sendConfirmationEmail(params: ConfirmationEmailParams): Pr
     const cancelUrl = `${SITE_URL}/cancelar/${cancelToken}`;
     const dateStr = formatDateES(startTime);
   
-    const { error } = await resend.emails.send({
+    const { error } = await getResend().emails.send({
       from: FROM_EMAIL,
       to,
       subject: `Reserva confirmada — ${serviceName}`,
@@ -166,7 +165,7 @@ export async function sendCancellationEmail(params: CancellationEmailParams): Pr
   const { to, customerName, serviceName, startTime } = params;
   const dateStr = formatDateES(startTime);
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Cita cancelada — ${serviceName}`,
@@ -223,7 +222,7 @@ export async function sendRescheduleEmail(params: RescheduleEmailParams): Promis
   const oldDateStr = formatDateES(oldStartTime);
   const newDateStr = formatDateES(newStartTime);
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Cita modificada — ${serviceName}`,

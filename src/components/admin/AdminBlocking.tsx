@@ -11,8 +11,20 @@ const timeToMins = (t: string) => {
   return h * 60 + m;
 };
 
+interface CalendarEntry {
+  id: string;
+  date: string;
+  type?: string;
+  status?: string;
+  start_time: string;
+  end_time?: string;
+  duration_min?: number;
+  client_name?: string;
+  client_phone?: string;
+}
+
 const AdminBlocking = () => {
-  const [blocks, setBlocks] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<CalendarEntry[]>([]);
   const [loading, setLoading] = useState(true);
   
   // 🔥 Control del Modal (Ventana Emergente)
@@ -26,14 +38,14 @@ const AdminBlocking = () => {
   const [reason, setReason] = useState("");
 
   // Sistema Anti-Colisiones
-  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [conflicts, setConflicts] = useState<CalendarEntry[]>([]);
   const [showWarning, setShowWarning] = useState(false);
 
   const fetchBlocks = async () => {
     try {
       const q = query(collection(db, "bookings"), where("type", "==", "block"));
       const snap = await getDocs(q);
-      const loadedBlocks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const loadedBlocks = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEntry[];
       // Ordenar por fecha
       loadedBlocks.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       setBlocks(loadedBlocks);
@@ -72,7 +84,7 @@ const AdminBlocking = () => {
     try {
       const q = query(collection(db, "bookings"), where("date", "==", date));
       const snap = await getDocs(q);
-      const dayBookings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dayBookings = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CalendarEntry[];
 
       const blockStart = timeToMins(startTime);
       const blockEnd = timeToMins(endTime);

@@ -1,16 +1,10 @@
-/**
- * @fileoverview storageManager.ts — Gestión de assets en Cloudinary.
- */
-
 import imageCompression from "browser-image-compression";
+import { auth } from "@/lib/firebase";
 
-const CLOUD_NAME = "dty7oivjy";
-const UPLOAD_PRESET = "ana-peluqueria";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "dty7oivjy";
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "ana-peluqueria";
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-const CLOUDINARY_DESTROY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`;
-
-const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
-const API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
+const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:3001/api" : "/api")).replace(/\/$/, "");
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.8,
@@ -19,106 +13,54 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.82,
 };
 
-// ─── HELPER: Generar firma SHA-1 nativa en el navegador ───────────────────
-async function generateSHA1(message: string) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+const extractPublicId = (url: string): string | null => {
+  const uploadPath = url.split("/upload/")[1];
+  if (!uploadPath) return null;
 
-// ─── HELPER: Extraer el Public ID de una URL de Cloudinary ────────────────
-function extractPublicId(url: string) {
-  try {
-    const uploadSplit = url.split('/upload/');
-    if (uploadSplit.length < 2) return null;
-    let path = uploadSplit[1];
-    path = path.replace(/^v\d+\//, ''); // Quita la versión (ej: v1711812345/)
-    const lastDotIndex = path.lastIndexOf('.');
-    if (lastDotIndex !== -1) {
-      path = path.substring(0, lastDotIndex); // Quita la extensión (.jpg, .webp)
-    }
-    return path;
-  } catch (e) {
-    return null;
-  }
-}
+  const withoutVersion = uploadPath.replace(/^v\d+\//, "");
+  const extensionIndex = withoutVersion.lastIndexOf(".");
+  return extensionIndex === -1 ? withoutVersion : withoutVersion.slice(0, extensionIndex);
+};
 
-/**
- * Comprime y sube una imagen a Cloudinary.
- */
 export async function compressAndUpload(file: File, storagePath?: string): Promise<string> {
-  let compressedBlob: File | Blob;
-
+  let uploadFile: File | Blob = file;
   try {
-    compressedBlob = await imageCompression(file, COMPRESSION_OPTIONS);
-  } catch (err) {
-    compressedBlob = file;
+    uploadFile = await imageCompression(file, COMPRESSION_OPTIONS);
+  } catch (error) {
+    console.warn("No se pudo comprimir la imagen; se subirá el archivo original.", error);
   }
 
   const formData = new FormData();
-  formData.append("file", compressedBlob);
+  formData.append("file", uploadFile);
   formData.append("upload_preset", UPLOAD_PRESET);
-  
-  if (storagePath) {
-    formData.append("folder", storagePath.split('/')[0]);
-  }
+  if (storagePath) formData.append("folder", storagePath.split("/")[0]);
 
-  try {
-    const response = await fetch(CLOUDINARY_URL, {
-      method: "POST",
-      body: formData,
-    });
+  const response = await fetch(CLOUDINARY_URL, { method: "POST", body: formData });
+  if (!response.ok) throw new Error("No se pudo subir la imagen.");
 
-    if (!response.ok) throw new Error("Fallo en la subida a Cloudinary");
-
-    const data = await response.json();
-    return data.secure_url;
-  } catch (error) {
-    console.error("Error subiendo imagen:", error);
-    throw error;
-  }
+  const data = await response.json() as { secure_url?: string };
+  if (!data.secure_url) throw new Error("Cloudinary no devolvió una URL válida.");
+  return data.secure_url;
 }
 
-/**
- * Elimina físicamente un archivo de Cloudinary usando el API Secret.
- */
 export async function deleteStorageFile(publicUrl: string): Promise<void> {
-  if (!publicUrl || !publicUrl.includes("cloudinary.com")) return;
+  if (!publicUrl.includes("cloudinary.com")) return;
 
   const publicId = extractPublicId(publicUrl);
-  if (!publicId) return;
+  if (!publicId) throw new Error("No se pudo identificar el asset de Cloudinary.");
 
-  if (!API_KEY || !API_SECRET) {
-    console.warn("⚠️ No se puede borrar: Faltan las llaves en .env.local");
-    return;
-  }
+  const user = auth?.currentUser;
+  if (!user) throw new Error("Debes iniciar sesión para eliminar imágenes.");
+  const token = await user.getIdToken();
 
-  try {
-    // 1. Crear la firma (Fórmula exigida por Cloudinary: public_id + timestamp + api_secret)
-    const timestamp = Math.round(new Date().getTime() / 1000).toString();
-    const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`;
-    const signature = await generateSHA1(stringToSign);
+  const response = await fetch(`${API_URL}/admin/delete-asset`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ publicId }),
+  });
 
-    // 2. Preparar los datos
-    const formData = new FormData();
-    formData.append("public_id", publicId);
-    formData.append("signature", signature);
-    formData.append("api_key", API_KEY);
-    formData.append("timestamp", timestamp);
-
-    // 3. Enviar la petición de destrucción
-    const response = await fetch(CLOUDINARY_DESTROY_URL, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (response.ok) {
-      console.info(`🗑️ Imagen destruida en Cloudinary: ${publicId}`);
-    } else {
-      console.error("Fallo al intentar destruir la imagen", await response.text());
-    }
-  } catch (error) {
-    console.error("Error destruyendo imagen:", error);
-  }
+  if (!response.ok) throw new Error("No se pudo eliminar la imagen.");
 }

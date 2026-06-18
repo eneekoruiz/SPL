@@ -1,6 +1,4 @@
-// src/lib/scheduler.ts
-
-interface WorkDay {
+export interface WorkDay {
   dayId: number;
   isActive: boolean;
   morningStart: string;
@@ -14,7 +12,7 @@ export interface Employee {
   name: string;
   skills: string[];
   priority: number;
-  schedule: WorkDay[]; // 🚀 Nuevo sistema de horarios
+  schedule: WorkDay[];
 }
 
 export interface Phase {
@@ -22,132 +20,165 @@ export interface Phase {
   end: number;
 }
 
-export const timeToMinutes = (t: string) => {
-  if (!t || !t.includes(":")) return 0;
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
+interface RequiredPhases {
+  p1: Phase;
+  p2: Phase | null;
+  p3: Phase | null;
+}
+
+interface Service {
+  category?: string;
+  duration_min?: number;
+  durationMin?: number;
+  phase1_min?: number;
+  phase1Min?: number;
+  phase2_min?: number;
+  phase2Min?: number;
+  phase3_min?: number;
+  phase3Min?: number;
+}
+
+interface Booking extends Service {
+  employee_id?: string;
+  status?: string;
+  start_time?: string;
+  end_time?: string;
+  startTime?: string;
+  endTime?: string;
+  isAppointment?: boolean;
+  isManual?: boolean;
+  isTotalBlock?: boolean;
+  type?: string;
+}
+
+const LEAD_TIME_MINUTES = 120;
+
+export const timeToMinutes = (time: string): number => {
+  if (!time || !time.includes(":")) return 0;
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
 };
 
-const isOverlap = (p1: Phase, p2: Phase) => {
-  return p1.start < p2.end && p1.end > p2.start;
+const normalizeCategory = (value: string): string =>
+  value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const isOverlap = (first: Phase, second: Phase): boolean =>
+  first.start < second.end && first.end > second.start;
+
+const isWithinWorkingHours = (schedule: WorkDay, start: number, end: number): boolean => {
+  if (!schedule?.isActive) return false;
+
+  const periods = [
+    [schedule.morningStart, schedule.morningEnd],
+    [schedule.afternoonStart, schedule.afternoonEnd],
+  ].filter(([periodStart, periodEnd]) => periodStart && periodEnd);
+
+  return periods.some(([periodStart, periodEnd]) =>
+    start >= timeToMinutes(periodStart) && end <= timeToMinutes(periodEnd),
+  );
 };
 
-// 🚀 NUEVA FUNCIÓN: Comprueba si un hueco (ej. 16:00 a 18:15) cabe DENTRO del turno de Ana (ej. 15:00 a 19:00)
-const isWithinWorkingHours = (schedule: WorkDay, startTimeMin: number, endTimeMin: number) => {
-  if (!schedule || !schedule.isActive) return false;
-
-  const mStart = timeToMinutes(schedule.morningStart);
-  const mEnd = timeToMinutes(schedule.morningEnd);
-  const aStart = timeToMinutes(schedule.afternoonStart);
-  const aEnd = timeToMinutes(schedule.afternoonEnd);
-
-  // ¿Cabe entero en la mañana?
-  const inMorning = (mStart > 0 && mEnd > 0) && (startTimeMin >= mStart && endTimeMin <= mEnd);
-  // ¿Cabe entero en la tarde?
-  const inAfternoon = (aStart > 0 && aEnd > 0) && (startTimeMin >= aStart && endTimeMin <= aEnd);
-
-  return inMorning || inAfternoon;
+const bookingTime = (value?: string): number => {
+  if (!value) return 0;
+  const time = value.includes("T") ? value.split("T")[1]?.slice(0, 5) : value.slice(0, 5);
+  return timeToMinutes(time ?? "");
 };
 
-const isEmployeeFree = (employeeId: string, requiredPhases: {p1: Phase, p2: Phase | null, p3: Phase | null}, dayBookings: any[], schedule: WorkDay) => {
-  
-  // 1. ¿Cabe el servicio entero dentro de su horario laboral (antes de irse a casa)?
-  const serviceStart = requiredPhases.p1.start;
-  const serviceEnd = requiredPhases.p3 ? requiredPhases.p3.end : (requiredPhases.p2 ? requiredPhases.p2.end : requiredPhases.p1.end);
-  
-  if (!isWithinWorkingHours(schedule, serviceStart, serviceEnd)) {
-    return false; // El servicio termina cuando el salón ya está cerrado
-  }
+const overlapsRequiredWork = (required: RequiredPhases, occupied: Phase): boolean =>
+  isOverlap(required.p1, occupied) || Boolean(required.p3 && isOverlap(required.p3, occupied));
 
-  // 2. Comprobamos los choques con eventos y Google Calendar
-  const employeeBookings = dayBookings.filter(b => 
-    b.status !== "cancelled" && 
-    (b.employee_id === employeeId || !b.employee_id || b.isManual || b.type === "block")
+const isEmployeeFree = (
+  employeeId: string,
+  required: RequiredPhases,
+  dayBookings: Booking[],
+  schedule: WorkDay,
+): boolean => {
+  const serviceEnd = required.p3?.end ?? required.p2?.end ?? required.p1.end;
+  if (!isWithinWorkingHours(schedule, required.p1.start, serviceEnd)) return false;
+
+  const relevantBookings = dayBookings.filter((booking) =>
+    booking.status !== "cancelled" &&
+    (booking.employee_id === employeeId || !booking.employee_id || booking.isManual || booking.type === "block"),
   );
 
-  for (const booking of employeeBookings) {
-    const bStart = timeToMinutes(booking.start_time || (booking.startTime?.split('T')[1]?.substring(0,5)));
-    const bEnd = timeToMinutes(booking.end_time || (booking.endTime?.split('T')[1]?.substring(0,5)));
-    
-    const isWorking = booking.isAppointment === true;
+  return relevantBookings.every((booking) => {
+    const start = bookingTime(booking.start_time ?? booking.startTime);
+    const phase1 = Number(booking.phase1_min ?? booking.phase1Min ?? booking.duration_min ?? booking.durationMin ?? 0);
+    const phase2 = Number(booking.phase2_min ?? booking.phase2Min ?? 0);
+    const phase3 = Number(booking.phase3_min ?? booking.phase3Min ?? 0);
+    const derivedEnd = start + phase1 + phase2 + phase3;
+    const end = bookingTime(booking.end_time ?? booking.endTime) || derivedEnd;
+    const isTotalBlock = booking.isTotalBlock || booking.isManual || booking.type === "block" || booking.isAppointment === false;
 
-    if (!isWorking && (booking.isManual || booking.type === "block")) {
-      const totalBlock = { start: bStart, end: bEnd };
-      if (isOverlap(requiredPhases.p1, totalBlock)) return false;
-      if (requiredPhases.p2 && isOverlap(requiredPhases.p2, totalBlock)) return false;
-      if (requiredPhases.p3 && isOverlap(requiredPhases.p3, totalBlock)) return false;
-    } else {
-      const workBlock = { start: bStart, end: bEnd };
-      if (isOverlap(requiredPhases.p1, workBlock)) return false;
-      if (requiredPhases.p3 && isOverlap(requiredPhases.p3, workBlock)) return false;
+    if (isTotalBlock) {
+      const block = { start, end };
+      return !(
+        isOverlap(required.p1, block) ||
+        Boolean(required.p2 && isOverlap(required.p2, block)) ||
+        Boolean(required.p3 && isOverlap(required.p3, block))
+      );
     }
-  }
-  return true; 
+
+    const occupiedPhase1 = { start, end: start + phase1 };
+    if (overlapsRequiredWork(required, occupiedPhase1)) return false;
+
+    if (phase3 > 0) {
+      const occupiedPhase3 = { start: end - phase3, end };
+      if (overlapsRequiredWork(required, occupiedPhase3)) return false;
+    }
+
+    return true;
+  });
 };
 
-const getLocalDateStr = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-
 export const calculateAvailability = (
-  allSlots: string[], 
-  service: any, 
-  dayBookings: any[], 
+  allSlots: string[],
+  service: Service,
+  dayBookings: Booking[],
   employees: Employee[],
   selectedDate: Date,
   isToday: boolean,
-  currentMinutes: number
+  currentMinutes: number,
 ) => {
   const occupied = new Set<string>();
-  const assignments: Record<string, string> = {}; 
+  const assignments: Record<string, string> = {};
 
   if (!service || !selectedDate) return { occupied: new Set(allSlots), assignments };
 
   const dayOfWeek = selectedDate.getDay();
-  const cP1 = Number(service.phase1_min || service.phase1Min || service.duration_min || service.durationMin || 0);
-  const cP2 = Number(service.phase2_min || service.phase2Min || 0);
-  const cP3 = Number(service.phase3_min || service.phase3Min || 0);
-  
-  const serviceCat = service.category?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || "";
+  const phase1 = Number(service.phase1_min ?? service.phase1Min ?? service.duration_min ?? service.durationMin ?? 0);
+  const phase2 = Number(service.phase2_min ?? service.phase2Min ?? 0);
+  const phase3 = Number(service.phase3_min ?? service.phase3Min ?? 0);
+  const serviceCategory = normalizeCategory(service.category ?? "");
 
-  // Filtramos a los trabajadores que: Saben hacer el servicio y hoy es su día de trabajo
-  const validStaff = employees.filter(e => {
-    if (!e.skills.includes(serviceCat)) return false;
-    // Comprobamos si tiene un horario activo para hoy
-    const todaySchedule = e.schedule?.find(d => d.dayId === dayOfWeek);
-    if (!todaySchedule || !todaySchedule.isActive) return false;
-    return true;
-  }).sort((a, b) => a.priority - b.priority);
+  const validStaff = employees
+    .filter((employee) => {
+      const skills = employee.skills.map(normalizeCategory);
+      const todaySchedule = employee.schedule?.find((day) => day.dayId === dayOfWeek);
+      return skills.includes(serviceCategory) && Boolean(todaySchedule?.isActive);
+    })
+    .sort((first, second) => first.priority - second.priority);
 
   for (const slot of allSlots) {
     const slotStart = timeToMinutes(slot);
-    
-    // Si la hora ya ha pasado hoy, la tachamos
-    if (isToday && slotStart <= currentMinutes) {
+    if (isToday && slotStart <= currentMinutes + LEAD_TIME_MINUTES) {
       occupied.add(slot);
       continue;
     }
 
-    const reqPhases = {
-      p1: { start: slotStart, end: slotStart + cP1 },
-      p2: cP2 > 0 ? { start: slotStart + cP1, end: slotStart + cP1 + cP2 } : null,
-      p3: cP3 > 0 ? { start: slotStart + cP1 + cP2, end: slotStart + cP1 + cP2 + cP3 } : null
+    const required: RequiredPhases = {
+      p1: { start: slotStart, end: slotStart + phase1 },
+      p2: phase2 > 0 ? { start: slotStart + phase1, end: slotStart + phase1 + phase2 } : null,
+      p3: phase3 > 0 ? { start: slotStart + phase1 + phase2, end: slotStart + phase1 + phase2 + phase3 } : null,
     };
 
-    let assignedId = null;
-    
-    // Verificamos si algún trabajador válido puede hacer el servicio
-    for (const emp of validStaff) {
-      const todaySchedule = emp.schedule.find(d => d.dayId === dayOfWeek)!;
-      if (isEmployeeFree(emp.id, reqPhases, dayBookings, todaySchedule)) {
-        assignedId = emp.id;
-        break; 
-      }
-    }
+    const employee = validStaff.find((candidate) => {
+      const schedule = candidate.schedule.find((day) => day.dayId === dayOfWeek);
+      return schedule && isEmployeeFree(candidate.id, required, dayBookings, schedule);
+    });
 
-    if (assignedId) {
-      assignments[slot] = assignedId;
-    } else {
-      occupied.add(slot);
-    }
+    if (employee) assignments[slot] = employee.id;
+    else occupied.add(slot);
   }
 
   return { occupied, assignments };
