@@ -1,9 +1,43 @@
-# SPL  Booking and content-management project built with Vite, React, TypeScript, and Firebase.  The repository contains a multi-tenant salon booking interface, editable public pages, admin screens, and backend integration points for appointments and calendar workflows.  ## What it includes  - Public pages for services, magazine content, booking, and salon information. - Admin-oriented screens for managing appointments and editable content. - Firebase-backed data flows. - Tenant-aware routing and theme configuration.  ## Local development  ```bash npm install npm run dev npm run check ```  Frontend variables are documented in `.env.example`.  The API lives in `apps/backend`:  ```bash cd apps/backend npm ci npm run build npm run dev ```  Backend variables are documented in `apps/backend/.env.example`. Firebase service-account data, Google credentials, Resend keys, and the Cloudinary API secret belong only in the backend environment. Production deployments must also set `ALLOWED_ORIGINS` explicitly.  ## Documentation  - [DeepWiki](https://deepwiki.com/eneekoruiz/SPL) for code exploration and supplementary documentation. 
+# SPL
 
- ## Architecture
+Booking and content-management project built with Vite, React, TypeScript, and Firebase.
 
-The repository contains two applications. The Vite and React frontend implements the public booking flow, tenant-aware pages and administration screens. Scheduling rules live in `src/lib/scheduler.ts`, outside the components, so slot calculation can be tested without rendering the interface.
+The repository contains a multi-tenant salon booking interface, editable public pages, admin screens, and backend integration points for appointments and calendar workflows.
 
-`apps/backend` is a Next.js API application. Route handlers validate requests and delegate authentication, booking, calendar, notification and storage work to modules under `src/lib`. Firebase Admin stores operational data, Google Calendar handles external calendar synchronization, and Resend is initialized only when notification credentials are available.
+## What it includes
 
-A booking request therefore moves from the React form to an API route, through validation and scheduling, and finally to persistence and optional external integrations. CORS and admin authentication are centralized so individual routes do not implement their own security rules. 
+- Public pages for services, magazine content, booking, and salon information.
+- Admin-oriented screens for managing appointments and editable content.
+- Firebase-backed data flows.
+- Tenant-aware routing and theme configuration.
+
+## Local development
+
+```bash
+npm install
+npm run dev
+npm run check
+```
+
+Frontend variables are documented in `.env.example`.
+
+The API lives in `apps/backend`:
+
+```bash
+cd apps/backend
+npm ci
+npm run build
+npm run dev
+```
+
+Backend variables are documented in `apps/backend/.env.example`. Firebase service-account data, Google credentials, Resend keys, and the Cloudinary API secret belong only in the backend environment. Production deployments must also set `ALLOWED_ORIGINS` explicitly.
+
+## Architecture
+
+The repository contains a Vite and React frontend plus the Next.js API under `apps/backend`. The frontend handles tenant-aware public pages, booking and administration; scheduling rules live in `src/lib/scheduler.ts` so they can be tested independently of the interface.
+
+Backend route handlers validate requests and delegate authentication, booking, calendar, notification and storage work to modules under `apps/backend/src/lib`. Firebase Admin stores operational data, with Google Calendar and Resend used only by their corresponding integrations.
+
+## Documentation
+
+- [DeepWiki](https://deepwiki.com/eneekoruiz/SPL) for code exploration and supplementary documentation.
